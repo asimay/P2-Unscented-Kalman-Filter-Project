@@ -32,7 +32,9 @@ This is provided in main.cpp file.
 
 ##### 2. Using augmented sigma points, which involved process noise on state vector x.
 
-`Augmented State = x​a,k​​ =​[​p​x ​p​y ​v ​ψ ​ψ​˙ ​ν​a ​ν​ψ​¨​].transpose()`
+Augmented State:
+
+`x​a,k​​ =​[​p​x ​p​y ​v ​ψ ​ψ​˙ ​ν​a ​ν​ψ​¨​].transpose()`
 
 ##### 3. Predict the sigma points.
 
