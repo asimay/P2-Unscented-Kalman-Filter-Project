@@ -2,12 +2,14 @@
 #include "Eigen/Dense"
 #include <iostream>
 #include <fstream>
-#include <boost/bind.hpp>
+//#include <boost/thread.hpp>
+//#include <boost/bind.hpp>
 
 using namespace std;
 using Eigen::MatrixXd;
 using Eigen::VectorXd;
 using std::vector;
+
 
 /**
  * Initializes Unscented Kalman filter
@@ -30,9 +32,9 @@ UKF::UKF() {
   x_.fill(0.0);
 
   // initial covariance matrix
-  P_ = MatrixXd(n_x_, n_x_);
+  P_ = MatrixXd(n_x_, n_x_);  
   for(int i=0; i<n_x_;i++) {
-      P_(i,i) = 1.0;
+      P_(i,i) = 0.105;
   }
 
   Xsig_pred_ = MatrixXd(n_x_, 2*n_aug_+1);
@@ -42,10 +44,10 @@ UKF::UKF() {
   weights_.fill(0);
 
   // Process noise standard deviation longitudinal acceleration in m/s^2
-  std_a_ = 2;
+  std_a_ = 1.885;
 
   // Process noise standard deviation yaw acceleration in rad/s^2
-  std_yawdd_ = 0.3;
+  std_yawdd_ = 0.28;
 
   // Laser measurement noise standard deviation position1 in m
   std_laspx_ = 0.15;
@@ -87,7 +89,7 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
                 x_(0) = meas_package.raw_measurements_(0);   //px
                 x_(1) = meas_package.raw_measurements_(1);   //py
                 x_(2) = 0;  //v
-                x_(3) = 0;//atan2(x_(1), x_(0)); // theta
+                x_(3) = atan2(x_(1), x_(0)); // theta
                 x_(4) = 0; // theta_dot
             }
             else if(meas_package.sensor_type_ == MeasurementPackage::RADAR && use_radar_ == true) {
@@ -117,8 +119,10 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
         UpdateRadar(meas_package);
 
         // output the NIS values
-        //outputNIS(NIS_radar_); //simply output file will damage the effiency of UKF calculation result.
-        boost::bind(&UKF::outputNIS, NIS_radar_)();
+        //outputNIS(NIS_radar_); 
+        //simply output file will damage the effiency of UKF calculation result.
+        //boost_thread = new boost::thread(boost::bind(&UKF::outputNIS, this, NIS_radar_));
+
     }
     else if(meas_package.sensor_type_ == MeasurementPackage::LASER && (use_laser_ == true)) {
 
@@ -126,7 +130,8 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
 
         // output the NIS values
         //outputNIS(NIS_laser_);
-        boost::bind(&UKF::outputNIS, NIS_laser_)();
+        //boost_thread = new boost::thread(boost::bind(&UKF::outputNIS, this, NIS_laser_));
+
     }
 
   }
@@ -264,7 +269,7 @@ void UKF::AugmentedSigmaPoints(MatrixXd* Xsig_out) {
     Q(1,1) = std_yawdd_ * std_yawdd_;
 
     P_aug.topLeftCorner(n_x_, n_x_) = P_;
-    //P_aug.bottomRightCorner(2,2) = Q;   //this is wrong, make big overflow. caution!
+    //P_aug.bottomRightCorner(2,2) = Q(2,2);   //this is wrong, make big overflow. caution!
     P_aug(5, 5) = Q(0, 0);
     P_aug(6, 6) = Q(1, 1);
 
@@ -305,7 +310,7 @@ void UKF::SigmaPointPrediction(MatrixXd& Xsig_aug, double delta_t){
         double px_p, py_p;
 
         //avoid division by zero
-        if (fabs(yawd) > 0.001) {
+        if (fabs(yawd) > 0.0001) {
           px_p = p_x + v / yawd * (sin(yaw + yawd * delta_t) - sin(yaw));
           py_p = p_y + v / yawd * (cos(yaw) - cos(yaw + yawd * delta_t));
         }
@@ -570,7 +575,7 @@ void UKF::outputNIS(double NIS) {
     }
 
     outfile << NIS << "\n";
-    //outfile.close();
+    outfile.close();
 
     return;
 }
