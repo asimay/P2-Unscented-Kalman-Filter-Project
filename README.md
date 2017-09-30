@@ -43,6 +43,7 @@ This is provided in main.cpp file.
 Predicted Mean:
 
 `x​k+1∣k​​ =∑​​ w​i​​ * X​k+1∣k,i`
+
 ​​
 Predicted Covariance:
 
