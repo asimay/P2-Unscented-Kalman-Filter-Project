@@ -2,14 +2,14 @@
 
 The goals / steps of this project are the following:
 
-* Utilize a kalman filter to estimate the state of a moving object of interest with noisy lidar and radar measurements. Passing the project requires obtaining RMSE values that are lower that the tolerance outlined in the project rubric. 
+* Utilize Unscented kalman filter and  based on the CTRV motion model to estimate the state of a moving object of interest with noisy lidar and radar measurements. Passing the project requires obtaining RMSE values that are lower that the tolerance outlined in the project rubric. 
 
 [//]: # (Image References)
-[image1]: ./images/1.png
-[image2]: ./images/onlyradar.png
-[image3]: ./images/onlylaser.png
-[image4]: ./images/dataset2test.png
-[image5]: ./images/noise13.png
+[image1]: ./outputs/1.png
+[image2]: ./outputs/onlyradar.png
+[image3]: ./outputs/onlylaser.png
+[image4]: ./outputs/dataset2test.png
+[image5]: ./outputs/noise13.png
 
 Final result:
 
@@ -17,57 +17,52 @@ Final result:
 
 ---
 
-## KF/EKF Process
+## UKF Process
 
 
 #### 1. Read the Radar and Lidar measurement data into program.
 
 This is provided in main.cpp file.
 
-#### 2. Kalman Filter or Extended Kalman Filter Process:
+#### 2. Unscented Kalman Filter Process:
 
-##### 1. Lidar measurement module is linear, so we use Kalman Filter to handle the data.
+##### 1. Generating Sigma Points, which is used to estimate and replace the non-linear process noise model.
 
-##### 2. Radar measurement module is nolinear, so we need to transform some nonlinear module or matrix to linear to handle the data, which is Extended Kalman Filter.
+`X​k∣k​​ =[x​k∣k​​ x​k∣k​​ +√​(λ+n​x​​ )P​k∣k​​ x​k∣k​​ −√​(λ+n​x​ )P​k∣k​​ ]`
 
-##### 3. Kalman Filter is `"predict --> update --> predict --> update"` loop to handle the data.
+##### 2. Using augmented sigma points, which involved process noise on state vector x.
 
-##### 4. Initializing the State Vector, use lidar measurement to initialize the state variable locations px, py, use the radar measurements ρ and ϕ to initialize the state variable locations px, py, vx, vy.
+`Augmented State = x​a,k​​ =​[​p​x ​p​y ​v ​ψ ​ψ​˙ ​ν​a ​ν​ψ​¨​].transpose()`
 
-##### 5. Calculating KF/EKF equations:
+##### 3. Predict the sigma points.
 
-`y = z - H * x' or y = z - h(x);`
+`State = x​k+1​​ = x​k​​ + g(k) + nu(k)`
 
-`S = H_ * P_ * H_.transpose() + R_;`
+##### 4. Predict the mean and covariance.
 
-`K = P_ * H_.transpose() * S.inverse();`
+Predicted Mean:
+`x​k+1∣k​​ =∑​​ w​i​​ * X​k+1∣k,i`
+​​
+Predicted Covariance:
+`P​k+1∣k​​ =∑​w​i​*​ (X​k+1∣k,i​​ −x​k+1∣k​​ )(X​k+1∣k,i​​ −x​k+1∣k​​ )​T`
+​​
 
-new estimate:
+##### 5. Predict measurement:
 
-`x_ = x_ + (K * y);`
+Measurement Model:
+`z​k+1∣k​​ =h(x​k+1​​ )+w​k+1`
+​​
+##### 6. Update state:
 
-`P_ = (I - K * H_) * P_;`
+Update State
+`x​k+1∣k+1​​ =x​k+1∣k​​ +K​k+1∣k​​ (z​k+1​​ −z​k+1∣k​​ )`
 
-Above is for measurement update. For EKF, I calculated the `Hj`(Jacobian Matrix) to do measurement update.
-
-predict the state:
-
-`x_ = F_ * x_ ;`
-
-`P_ = F_ * P_ * F_.transpose() + Q_;`
-
-Above is for predict.
-
-##### 6. Normalizing Angles:
+##### 7. Normalizing Angles:
 
 ```
-  float theta_offset = y(1);
-  if(theta_offset < -PI) {
-      y(1) = theta_offset + 2 * PI;
-  }
-  else if (theta_offset > PI) {
-      y(1) = theta_offset - 2 * PI;
-  }
+        VectorXd T =  Zsig.col(i) - z_pred;
+        while(T(1) < -M_PI) T(1) += 2*M_PI;
+        while(T(1) > M_PI)  T(1) -= 2*M_PI;
 ```
 
 ## Test Implementation:
@@ -95,8 +90,11 @@ RMSE screenshot as below:
 
 ![alt text][image4]
 
-####  5. Fusion both Radar and Lidar data, but tune a good Q process noise, I increase the noise_ax and noise_ay  up to 13, and got a  good result:
+####  5. Fusion both Radar and Lidar data, but tune a good Q process noise, I increase the std_a_ = 2 and std_yawdd_ = 0.3, and got a  good result:
 
 RMSE screenshot as below:
 
 ![alt text][image5]
+
+## NIS Implementation:
+
